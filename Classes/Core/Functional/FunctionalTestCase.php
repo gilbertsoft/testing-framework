@@ -17,6 +17,7 @@ namespace TYPO3\TestingFramework\Core\Functional;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\Platforms\PostgreSqlPlatform;
 use Doctrine\DBAL\Platforms\SQLServerPlatform;
+use PHPUnit\Util\ErrorHandler;
 use PHPUnit\Util\PHP\AbstractPhpProcess;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -395,6 +396,21 @@ abstract class FunctionalTestCase extends BaseTestCase
         unset($this->testExtensionsToLoad, $this->frameworkExtensionsToLoad, $this->pathsToLinkInTestInstance);
         unset($this->pathsToProvideInTestInstance, $this->configurationToUseInTestInstance);
         unset($this->additionalFoldersToCreate, $this->backendUserFixture);
+
+        if ((new Typo3Version())->getMajorVersion() >= 11
+            && defined('TYPO3_TESTING_FUNCTIONAL_REMOVE_ERROR_HANDLER')
+        ) {
+            $previousErrorHandler = set_error_handler(function () {});
+            // Previous *must* be the phpunit ErrorHandler
+            if (!$previousErrorHandler instanceof ErrorHandler) {
+                throw new \RuntimeException(
+                    'tearDown() check: A dangling error handler setup has been found. Use restore_error_handler() to unset it.',
+                    1410633510
+                );
+            }
+            // Drop dummy error handler again
+            restore_error_handler();
+        }
     }
 
     /**
